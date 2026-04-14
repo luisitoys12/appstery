@@ -1,0 +1,79 @@
+name: VirusTotal Manual Scan
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag del release a escanear (ej: v1.0.0)'
+        required: false
+        type: string
+      apk_url:
+        description: 'URL directa del APK (opcional)'
+        required: false
+        type: string
+
+jobs:
+  scan:
+    name: Escanear APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Descargar APK del Release
+        if: ${{ inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p apk-scan
+          gh release download "${{ inputs.release_tag }}" \
+            --repo ${{ github.repository }} \
+            --pattern '*.apk' \
+            --dir apk-scan/
+
+      - name: Descargar APK desde URL
+        if: ${{ inputs.apk_url != '' && inputs.release_tag == '' }}
+        run: |
+          mkdir -p apk-scan
+          wget -O apk-scan/appstery-manual.apk "${{ inputs.apk_url }}"
+
+      - name: Escanear con VirusTotal
+        uses: crazy-max/ghaction-virustotal@v4
+        id: scan
+        with:
+          vt_api_key: ${{ secrets.VT_API_KEY }}
+          files: apk-scan/*.apk
+          request_rate: 4
+
+      - name: Reporte detallado
+        run: |
+          echo "================================================"
+          echo "            REPORTE VIRUSTOTAL"
+          echo "================================================"
+          echo '${{ steps.scan.outputs.analysis }}' | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    for f, info in data.items():
+        attrs = info.get('data',{}).get('attributes',{})
+        stats = attrs.get('last_analysis_stats',{})
+        mal  = stats.get('malicious', 0)
+        sus  = stats.get('suspicious', 0)
+        harm = stats.get('harmless', 0)
+        undet= stats.get('undetected', 0)
+        total= mal+sus+harm+undet
+        link = info.get('data',{}).get('links',{}).get('self','N/A')
+        print(f'Archivo    : {f}')
+        print(f'Total      : {total} motores')
+        print(f'Limpio     : {harm+undet}')
+        print(f'Sospechoso : {sus}')
+        print(f'Malicioso  : {mal}')
+        print(f'Reporte    : {link}')
+        print()
+        if   mal >= 3: print('ESTADO: RECHAZADO')
+        elif mal >  0: print('ESTADO: ADVERTENCIA (posible falso positivo)')
+        else:          print('ESTADO: APROBADO')
+except Exception as e:
+    print(f'Error: {e}')
+"
+          echo "================================================"
