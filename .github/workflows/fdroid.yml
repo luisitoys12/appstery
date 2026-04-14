@@ -1,0 +1,61 @@
+name: Actualizar repositorio F-Droid
+
+on:
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+jobs:
+  fdroid-update:
+    name: Generar metadatos F-Droid
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo principal
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Checkout rama gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Crear estructura F-Droid si no existe
+        run: |
+          mkdir -p gh-pages/fdroid/repo
+          mkdir -p gh-pages/fdroid/metadata
+
+      - name: Descargar APK del último release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LATEST=$(gh release list --repo ${{ github.repository }} --limit 1 --json tagName -q '.[0].tagName')
+          echo "Último release: $LATEST"
+          gh release download "$LATEST" \
+            --repo ${{ github.repository }} \
+            --pattern '*.apk' \
+            --dir gh-pages/fdroid/repo/ || echo "No hay APK en el release"
+
+      - name: Generar index.json F-Droid básico
+        run: |
+          cat > gh-pages/fdroid/repo/index-v2.json << 'EOF'
+          {
+            "repo": {
+              "name": "Appstery",
+              "description": "Repositorio oficial de Appstery — tienda de apps Android libre",
+              "icon": "icon.png",
+              "address": "https://luisitoys12.github.io/appstery/fdroid/repo",
+              "timestamp": 0
+            },
+            "packages": {}
+          }
+          EOF
+
+      - name: Publicar en GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: gh-pages
+          keep_files: true
