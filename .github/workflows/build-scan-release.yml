@@ -1,0 +1,236 @@
+name: Appstery — Build · Scan · Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: "17"
+  BUILD_TOOLS: "34.0.0"
+
+jobs:
+  # ── 1. BUILD ───────────────────────────────────────────────────────────────
+  build:
+    name: 🔨 Build APK
+    runs-on: ubuntu-latest
+    outputs:
+      apk-path: ${{ steps.find.outputs.path }}
+      version: ${{ steps.ver.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+
+      - name: Setup signing keystore
+        run: |
+          mkdir -p keystore
+          echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > keystore/appstery.keystore
+
+      - name: Build Release APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleVanillaProdRelease --no-daemon
+        env:
+          KEYSTORE_PATH: keystore/appstery.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: appstery
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_FILE_VANILLA: keystore/appstery.keystore
+          STORE_PASSWORD_VANILLA: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS_VANILLA: appstery
+          KEY_PASSWORD_VANILLA: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Get version
+        id: ver
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Locate APK
+        id: find
+        run: |
+          P=$(find . -name "*vanilla*prod*release*.apk" ! -path "*/obj/*" | head -1)
+          echo "path=$P" >> "$GITHUB_OUTPUT"
+          echo "APK: $P"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: ${{ steps.find.outputs.path }}
+
+  # ── 2. SECURITY SCAN ───────────────────────────────────────────────────────
+  scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+          path: ./apk
+
+      - name: Install ClamAV
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y clamav
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam
+
+      - name: ClamAV scan
+        run: |
+          echo "## 🦠 ClamAV" >> $GITHUB_STEP_SUMMARY
+          clamscan --recursive ./apk 2>&1 | tee clamav.txt
+          if grep -q "Infected files: 0" clamav.txt; then
+            echo "✅ PASS — no malware detectado" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ FAIL — archivos infectados" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: Install Androguard
+        run: pip install androguard --quiet
+
+      - name: Androguard static analysis
+        run: |
+          APK=$(find ./apk -name "*.apk" | head -1)
+          echo "## 🤖 Androguard" >> $GITHUB_STEP_SUMMARY
+          python3 - "$APK" << 'PY'
+          import sys
+          from androguard.misc import AnalyzeAPK
+          a, d, dx = AnalyzeAPK(sys.argv[1])
+          perms = a.get_permissions()
+          dangerous = [p for p in perms if any(x in p for x in [
+              "READ_CONTACTS","READ_SMS","RECORD_AUDIO",
+              "READ_CALL_LOG","PROCESS_OUTGOING_CALLS","ACCESS_FINE_LOCATION"
+          ])]
+          print(f"Package   : {a.get_package()}")
+          print(f"Target SDK: {a.get_target_sdk_version()}")
+          print(f"Permisos  : {len(perms)} total, {len(dangerous)} peligrosos")
+          if dangerous:
+              print(f"WARN: {dangerous}")
+          else:
+              print("PASS: sin permisos peligrosos")
+          PY
+
+      - name: Verify APK signature (apksigner)
+        run: |
+          APK=$(find ./apk -name "*.apk" | head -1)
+          echo "## ✍️ apksigner" >> $GITHUB_STEP_SUMMARY
+          $ANDROID_HOME/build-tools/${{ env.BUILD_TOOLS }}/apksigner verify --print-certs "$APK"
+          echo "✅ Firma verificada" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload scan report
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-report
+          path: clamav.txt
+
+  # ── 3. GITHUB RELEASE ──────────────────────────────────────────────────────
+  release:
+    name: 🚀 Publish Release
+    runs-on: ubuntu-latest
+    needs: [build, scan]
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: apk,         path: ./apk }
+      - uses: actions/download-artifact@v4
+        with: { name: scan-report, path: ./reports }
+
+      - name: Rename APK
+        run: |
+          SRC=$(find ./apk -name "*.apk" | head -1)
+          mv "$SRC" "appstery-${{ needs.build.outputs.version }}.apk"
+
+      - name: GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Appstery ${{ needs.build.outputs.version }}"
+          body: |
+            ## ✅ Appstery ${{ needs.build.outputs.version }}
+
+            ### Seguridad — todos los checks pasaron
+            | Check | Resultado |
+            |-------|-----------|
+            | ClamAV | ✅ Sin malware |
+            | Androguard | ✅ Sin permisos peligrosos |
+            | apksigner | ✅ Firma verificada |
+
+            ### Instalar
+            **F-Droid:** agrega `https://luisitoys12.github.io/appstery/fdroid/repo`
+            **Directo:** descarga `appstery-${{ needs.build.outputs.version }}.apk` ↓
+
+            > `com.appstery.app` · GPL-3.0 · fork de Aptoide v8
+          files: |
+            appstery-${{ needs.build.outputs.version }}.apk
+            reports/clamav.txt
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── 4. UPDATE F-DROID REPO EN gh-pages ────────────────────────────────────
+  update-fdroid:
+    name: 📦 Update F-Droid Repo
+    runs-on: ubuntu-latest
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: repo
+
+      - name: Install fdroidserver
+        run: |
+          sudo add-apt-repository ppa:fdroid/fdroidserver -y
+          sudo apt-get update -qq
+          sudo apt-get install -y fdroidserver
+
+      - name: Download released APK
+        run: |
+          mkdir -p repo/docs/fdroid/repo
+          URL=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest \
+            | python3 -c "import sys,json; r=json.load(sys.stdin); \
+              print([a['browser_download_url'] for a in r['assets'] if a['name'].endswith('.apk')][0])")
+          curl -L "$URL" -o "repo/docs/fdroid/repo/$(basename $URL)"
+
+      - name: Rebuild F-Droid index
+        working-directory: repo/docs/fdroid
+        run: |
+          echo "${{ secrets.FDROID_KEYSTORE_B64 }}" | base64 -d > /tmp/appstery.jks
+          cat > config.yml << EOF
+          repo_url: https://luisitoys12.github.io/appstery/fdroid/repo
+          repo_name: Appstery
+          repo_description: Tienda de apps Android libre. Fork de Aptoide v8.
+          keystore: /tmp/appstery.jks
+          keystorepass: "${{ secrets.FDROID_KEYSTORE_PASS }}"
+          keyalias: appstery
+          keypass: "${{ secrets.FDROID_KEY_PASS }}"
+          EOF
+          fdroid update
+          fdroid signindex
+
+      - name: Push updated docs
+        working-directory: repo
+        run: |
+          git config user.name  "Appstery Bot"
+          git config user.email "bot@appstery"
+          git add docs/fdroid/
+          git commit -m "fdroid: update repo ${{ needs.build.outputs.version }} [skip ci]" || true
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

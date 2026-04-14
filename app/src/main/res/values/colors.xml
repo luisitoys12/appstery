@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Appstery Visual Identity -->
+<resources>
+    <!-- Primary brand -->
+    <color name="appstery_teal">#00D4AA</color>
+    <color name="appstery_teal_dark">#009B7D</color>
+    <color name="appstery_teal_dim">#1A2E2B</color>
+
+    <!-- Surfaces -->
+    <color name="appstery_bg">#080C10</color>
+    <color name="appstery_surface">#0D1117</color>
+    <color name="appstery_surface_2">#111820</color>
+    <color name="appstery_surface_3">#161E28</color>
+
+    <!-- Text -->
+    <color name="appstery_text">#E8EDF2</color>
+    <color name="appstery_text_muted">#7A8896</color>
+    <color name="appstery_text_faint">#3D4F60</color>
+
+    <!-- States -->
+    <color name="appstery_ok">#28C840</color>
+    <color name="appstery_warn">#FFAA00</color>
+    <color name="appstery_danger">#FF4D6A</color>
+
+    <!-- Legacy compatibility with Aptoide color refs -->
+    <color name="primary">#00D4AA</color>
+    <color name="primary_dark">#009B7D</color>
+    <color name="accent">#00D4AA</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="background">#080C10</color>
+    <color name="window_background">#0D1117</color>
+    <color name="ripple_color">#1A00D4AA</color>
+
+    <!-- Splash screen -->
+    <color name="splash_background">#080C10</color>
+</resources>

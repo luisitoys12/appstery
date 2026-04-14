@@ -1,125 +1,63 @@
-# 🧩 Appstery
+# Appstery
 
-> Tu tienda de apps Android — libre, abierta y distribuida sin hosting propio.
+> Tu tienda de apps Android 100% libre. Sin Google Play. Sin tracking. Sin cuenta.
 
-[![Build APK](https://github.com/luisitoys12/appstery/actions/workflows/build.yml/badge.svg)](https://github.com/luisitoys12/appstery/actions/workflows/build.yml)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![F-Droid](https://img.shields.io/badge/F--Droid-compatible-green)](https://luisitoys12.github.io/appstery/fdroid/repo)
+[![Build · Scan · Release](https://github.com/luisitoys12/appstery/actions/workflows/build-scan-release.yml/badge.svg)](https://github.com/luisitoys12/appstery/actions/workflows/build-scan-release.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-teal.svg)](LICENSE)
+[![F-Droid](https://img.shields.io/badge/F--Droid-available-green)](https://luisitoys12.github.io/appstery/fdroid/repo)
 
-**Appstery** es una tienda de aplicaciones Android de código abierto, basada en el cliente Aptoide v8.
-No necesita dominio propio ni hosting — se distribuye directamente desde GitHub y F-Droid.
+## ¿Qué es Appstery?
 
----
+Appstery es un fork de [Aptoide v8](https://github.com/Aptoide/aptoide-client-v8) re-brandizado como tienda de apps libre, sin ads, sin AppCoins y sin dependencia de Google Play. Se distribuye exclusivamente vía GitHub Releases y F-Droid.
 
-## 📦 Instalar Appstery
+## Instalar
 
-### Opción 1 — GitHub Releases (APK directo)
+### Opción 1 — F-Droid (recomendado)
 
-1. Ve a [Releases](https://github.com/luisitoys12/appstery/releases)
-2. Descarga el APK más reciente (`appstery-release.apk`)
-3. En tu Android: **Ajustes → Seguridad → Instalar apps desconocidas** ✔️
-4. Abre el APK descargado e instala
+1. Abre F-Droid → Settings → Repositories → `+`
+2. Agrega: `https://luisitoys12.github.io/appstery/fdroid/repo`
+3. Busca **Appstery** e instala
 
-### Opción 2 — F-Droid (repositorio custom)
+### Opción 2 — APK directo
 
-1. Instala [F-Droid](https://f-droid.org)
-2. En F-Droid → **Ajustes → Repositorios → Agregar repositorio**
-3. Pega esta URL:
-   ```
-   https://luisitoys12.github.io/appstery/fdroid/repo
-   ```
-4. Busca **Appstery** y actualiza
+Descarga el APK desde [Releases](https://github.com/luisitoys12/appstery/releases/latest).
 
----
+## Catálogo web
 
-## 🛠 Estructura del proyecto
+Visita [luisitoys12.github.io/appstery](https://luisitoys12.github.io/appstery) para explorar el catálogo.
+
+## Compilar desde fuente
+
+```bash
+git clone https://github.com/luisitoys12/appstery.git
+cd appstery
+# Configura gradle.properties con tus keys de firma (ver SECRETS_SETUP.md)
+./gradlew assembleVanillaProdRelease
+```
+
+## Configurar secrets
+
+Ver [`docs/SECRETS_SETUP.md`](docs/SECRETS_SETUP.md) para instrucciones completas.
+
+## Estructura
 
 ```
 appstery/
-├── app/                          # Módulo principal Android
-├── appcoins/                     # Sistema de pagos (AppCoins)
-├── aptoide-account-manager/      # Gestión de cuentas
-├── aptoide-analytics-core/       # Analíticas (core)
-├── aptoide-authentication-core/  # Autenticación
-├── aptoide-database/             # Base de datos local (Room)
-├── aptoide-views/                # Componentes UI custom
-├── dataprovider/                 # Capa de datos / API
-├── downloadmanager/              # Gestor de descargas APK
-├── packageinstaller/             # Instalador de paquetes
-├── utils/                        # Utilidades generales
-├── crashreports/                 # Reportes de crash
-└── .github/workflows/            # CI/CD con GitHub Actions
+├── app/                    ← Módulo principal Android
+├── dataprovider/           ← API → redirigido a F-Droid / backend propio
+├── downloadmanager/        ← Gestor de descargas APK
+├── packageinstaller/       ← Instalador de paquetes
+├── aptoide-views/          ← Componentes visuales
+├── docs/                   ← GitHub Pages (catálogo web + F-Droid repo)
+│   ├── index.html          ← App web companion
+│   └── fdroid/repo/        ← Índice F-Droid
+└── .github/workflows/      ← CI/CD: build · scan · release · fdroid
 ```
 
----
+## Licencia
 
-## 🔧 Compilar desde el código fuente
-
-### Requisitos
-
-- **Java 17+**
-- **Android SDK** (API 21 mínimo, API 34 target)
-- **Gradle 8+**
-
-### Pasos
-
-```bash
-# Clonar el repo
-git clone https://github.com/luisitoys12/appstery.git
-cd appstery
-
-# Compilar APK debug
-./gradlew assembleDebug
-
-# Compilar APK release (requiere keystore)
-./gradlew assembleRelease
-```
-
-El APK se genera en: `app/build/outputs/apk/`
+GPL-3.0 — fork de Aptoide v8. Ver [LICENSE](LICENSE).
 
 ---
 
-## ⚙️ GitHub Actions (CI/CD)
-
-Cada push a `main` compila automáticamente el APK y lo adjunta como artefacto.
-Cada tag `v*.*.*` crea un **Release** con el APK publicado automáticamente.
-
-Ver workflows en [`.github/workflows/`](.github/workflows/)
-
----
-
-## 🗺 Roadmap
-
-- [x] Fork y rebrand base (Aptoide v8 → Appstery)
-- [x] GitHub Actions para compilar APK automáticamente
-- [x] Distribución vía GitHub Releases
-- [ ] Repositorio F-Droid en GitHub Pages
-- [ ] Cambiar package name a `com.appstery.app`
-- [ ] Reemplazar endpoints API por backend propio o F-Droid API
-- [ ] Nuevo diseño visual (icono, splash, colores)
-- [ ] Soporte SRT/RTMP para catálogo de media apps
-- [ ] App web companion (GitHub Pages)
-
----
-
-## 🤝 Contribuir
-
-1. Haz fork del repo
-2. Crea tu rama: `git checkout -b feature/mi-feature`
-3. Commit: `git commit -m 'feat: agrega X'`
-4. Push: `git push origin feature/mi-feature`
-5. Abre un Pull Request
-
-Para traducciones, se usará Crowdin. Ver [`crowdin.yml`](crowdin.yml).
-
----
-
-## 📄 Licencia
-
-Distribuido bajo la licencia **GNU GPL v3**. Ver [`LICENSE`](LICENSE) para más detalles.
-
----
-
-<p align="center">
-  <sub>Hecho con ❤️ — sin dominio, sin hosting, puro open source.</sub>
-</p>
+> Package: `com.appstery.app` · built with ❤️ from Irapuato, Guanajuato, MX

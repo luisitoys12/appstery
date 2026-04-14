@@ -1,0 +1,43 @@
+{
+  "repo": {
+    "name": "Appstery",
+    "description": "Tienda de apps Android libre. Fork de Aptoide v8. Sin tracking, sin Google Play.",
+    "icon": "https://luisitoys12.github.io/appstery/fdroid/repo/icons/com.appstery.app.png",
+    "address": "https://luisitoys12.github.io/appstery/fdroid/repo",
+    "timestamp": 1713999600000,
+    "version": 21
+  },
+  "packages": {
+    "com.appstery.app": {
+      "metadata": {
+        "name": { "en-US": "Appstery" },
+        "summary": { "en-US": "Tu tienda de apps Android libre" },
+        "description": { "en-US": "Fork de Aptoide v8 re-brandizado como tienda de apps libre. Sin Google Play, sin tracking, sin AppCoins. Distribución exclusiva por GitHub Releases y F-Droid." },
+        "license": "GPL-3.0-only",
+        "sourceCode": "https://github.com/luisitoys12/appstery",
+        "issueTracker": "https://github.com/luisitoys12/appstery/issues",
+        "categories": ["System"],
+        "authorName": "luisitoys12"
+      },
+      "versions": {
+        "1000000": {
+          "file": {
+            "name": "/appstery-v1.0.0.apk",
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "size": 0
+          },
+          "manifest": {
+            "versionName": "1.0.0",
+            "versionCode": 1000000,
+            "usesSdk": { "minSdkVersion": 21, "targetSdkVersion": 34 },
+            "usesPermission": [
+              { "name": "android.permission.INTERNET" },
+              { "name": "android.permission.REQUEST_INSTALL_PACKAGES" }
+            ]
+          },
+          "releaseChannels": ["default"]
+        }
+      }
+    }
+  }
+}

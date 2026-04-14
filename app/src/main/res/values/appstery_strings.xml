@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Appstery</string>
+    <string name="app_tagline">Tu tienda de apps libre</string>
+    <string name="market_name">Appstery</string>
+
+    <!-- F-Droid repo -->
+    <string name="fdroid_repo_url">https://luisitoys12.github.io/appstery/fdroid/repo</string>
+    <string name="fdroid_repo_name">Appstery Repo</string>
+
+    <!-- Media / Streaming -->
+    <string name="media_rtmp_endpoint">rtmp://live.appstery.app/stream</string>
+    <string name="media_srt_endpoint">srt://live.appstery.app:9998</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Bienvenido a Appstery</string>
+    <string name="onboarding_subtitle">Apps libres, sin tracking, sin Google Play</string>
+    <string name="onboarding_add_fdroid">Agregar repo F-Droid</string>
+
+    <!-- About -->
+    <string name="about_version">Versión</string>
+    <string name="about_license">Licencia: GPL-3.0</string>
+    <string name="about_source">Código fuente en GitHub</string>
+    <string name="about_source_url">https://github.com/luisitoys12/appstery</string>
+</resources>
